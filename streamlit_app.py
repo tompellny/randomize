@@ -41,9 +41,10 @@ def plot_returns_histogram(returns):
 def main():
     st.title("Time Series Generator with Drift")
     st.markdown('This tool generates a random time series based on the specified parameters. It also includes a histogram showing the distribution of daily returns.')
+    st.write("")
+    st.write("")
 
     st.subheader("Enter Parameters", divider="red")
-    st.write("")
 
     # Input fields for user configuration with unique keys
     start_date = st.date_input("Start Date", value=pd.to_datetime('2020-01-01'), format="YYYY-MM-DD")
@@ -64,6 +65,8 @@ def main():
         daily_returns = calculate_daily_returns(timeseries)
         df['Daily Return'] = np.append([np.nan], daily_returns)  # First value is NaN
         
+        st.write("")
+        st.write("")
         st.subheader("Random Time Series with Drift", divider="red")
         st.write("")
         st.line_chart(df.set_index("Time")[['Value']])  # Select only the 'Value' column for the line chart
@@ -72,13 +75,15 @@ def main():
         total_return = ((timeseries[-1] / timeseries[0]) - 1) * 100
         st.metric(label="Total Return", value=f"{total_return:.2f}%")
         
-        st.subheader("Daily Returns Bar Chart", divider="red")
-        st.write("")
-        fig = plot_returns_histogram(daily_returns)
-        st.pyplot(fig)
-
         csv = df.to_csv(sep=';', index=False)
         st.download_button("Download Time Series", data=csv, file_name='timeseries.csv', mime='text/csv')
+        
+        st.write("")
+
+        with st.expander("Distribution of Daily Returns"):
+            st.write("")
+            fig = plot_returns_histogram(daily_returns)
+            st.pyplot(fig)
 
 if __name__ == "__main__":
     main()
