@@ -4,19 +4,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Randomize", layout="centered")
+st.logo("assets/logo-finstory-symboltext.png")
 
-def generate_timeseries(data_size, start_value, max_change, annual_drift, start_date):
+def generate_timeseries(data_size, start_value, max_change, annual_drift, start_date, random_type):
     # Initialize the time series with the starting value
     timeseries = [start_value]
     
     # Assume max_change corresponds to 3 standard deviations (99.7% confidence)
     std_dev = max_change / 3
+    max_change_abs = start_value * max_change / 100
     
     # Calculate daily drift, assuming 252 trading days in a year
     daily_drift = (annual_drift / 252) / 100
     for _ in range(data_size - 1):
-        # Generate a change using a normal distribution with drift
-        change_percent = np.random.normal(daily_drift, std_dev)
+        # Generate a change using the selected distribution type with drift
+        if random_type == "Uniform":
+            change_percent = np.random.normal(-max_change_abs, max_change_abs)
+
+        else:
+            change_percent = np.random.normal(daily_drift, std_dev)
 
         # Calculate the next value ensuring it does not exceed the max_change limits
         change_factor = 1 + max(min(change_percent, max_change), -max_change) / 100
@@ -51,13 +57,14 @@ def main():
     # Input fields for user configuration with unique keys
     start_date = st.date_input("Start Date", value=pd.to_datetime('2020-01-01'), format="YYYY-MM-DD")
     start_value = st.number_input("Starting value", value=100.0, key='start_value')
-    data_size = st.slider("Data size (number of points)", min_value=250, max_value=5000, step=250, value=1250, key='data_size')
-    max_change = st.slider("Max daily change in %", min_value=1, max_value=25, step=1, value=15, key='max_change')
-    annual_drift = st.slider("Annual drift in % (positive for growth, negative for decline)", min_value=-15, max_value=15, step=1, value=7, key='annual_drift')
+    data_size = st.slider("Data Size (number of points)", min_value=250, max_value=5000, step=250, value=1250, key='data_size')
+    max_change = st.slider("Max Daily Change in %", min_value=1, max_value=25, step=1, value=15, key='max_change')
+    annual_drift = st.slider("Annual Drift in % (positive for growth, negative for decline)", min_value=-15, max_value=50, step=5, value=7, key='annual_drift')
+    random_type = st.selectbox("Random Distribution Type", ("Normal", "Uniform"), key="random_type")
 
     # Generate and display the time series on button click
     if st.button("Generate Timeseries", key='generate_ts'):
-        timeseries = generate_timeseries(data_size, start_value, max_change, annual_drift, start_date)
+        timeseries = generate_timeseries(data_size, start_value, max_change, annual_drift, start_date, random_type)
         
         # Generate dates only for weekdays
         dates = pd.bdate_range(start=start_date, periods=data_size, freq='B')
@@ -86,6 +93,9 @@ def main():
             st.write("")
             fig = plot_returns_histogram(daily_returns)
             st.pyplot(fig)
+
+        with st.expander("Display random values"):
+            st.dataframe(df)
 
 if __name__ == "__main__":
     main()
