@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+st.set_page_config(page_title="Randomize", layout="wide")
+
 def generate_timeseries(data_size, start_value, max_change, annual_drift, start_date):
     # Initialize the time series with the starting value
     timeseries = [start_value]
