@@ -52,6 +52,8 @@ with st.form("fund_figures_form"):
 # Generate data and store in session_state
 if generate_button:
     st.session_state.df = generate_fund_figures(start_date, num_weekdays, num_share_classes)
+    num_records = num_weekdays * num_share_classes * 4 * 5 * 3
+    st.success(f"{num_records} records generated!")
 
 # Sidebar filters and display if data exists
 if "df" in st.session_state:
@@ -80,7 +82,8 @@ if "df" in st.session_state:
                                   (filtered_df["value_date"] <= pd.to_datetime(date_range[1]))]
 
     # Display filtered data
-    st.write("Filtered Data")
+    num_filtered = len(filtered_df)
+    st.write(f"Data set filtered to {num_filtered} records.")
     st.dataframe(filtered_df)
 else:
     st.write("Generate random data using the form.")
