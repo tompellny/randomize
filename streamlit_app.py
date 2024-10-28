@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Randomize", layout="centered")
-st.logo("assets/logo-finstory-symboltext.png")
+#st.logo("assets/logo-finstory-symboltext.png")
 
 def generate_timeseries(data_size, start_value, max_change, annual_drift, start_date, random_type):
     # Initialize the time series with the starting value
@@ -47,6 +47,7 @@ def plot_returns_histogram(returns):
     return plt
 
 def main():
+    st.image("assets/logo-finstory-symboltext.png", width=80)
     st.title("Time Series Generator with Drift")
     st.markdown('This tool generates a random time series based on the specified parameters. It also includes a histogram showing the distribution of daily returns.')
     st.write("")
