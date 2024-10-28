@@ -1,102 +1,79 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from datetime import timedelta
 
-st.set_page_config(page_title="Randomize", layout="centered")
-#st.logo("assets/logo-finstory-symboltext.png")
-
-def generate_timeseries(data_size, start_value, max_change, annual_drift, start_date, random_type):
-    # Initialize the time series with the starting value
-    timeseries = [start_value]
+def generate_fund_figures(start_date, num_weekdays, num_share_classes):
+    # Define fixed codes
+    series_types = ["NAV", "FXRATES", "IR", "DISTR"]
+    series_subtypes = [f"subtype{i}" for i in range(1, 6)]
+    qualifiers = ["CHF", "EUR", "USD"]
     
-    # Assume max_change corresponds to 3 standard deviations (99.7% confidence)
-    std_dev = max_change / 3
-    max_change_abs = start_value * max_change / 100
+    # Generate date range for the specified number of weekdays
+    date_range = pd.bdate_range(start=start_date, periods=num_weekdays)
     
-    # Calculate daily drift, assuming 252 trading days in a year
-    daily_drift = (annual_drift / 252) / 100
-    for _ in range(data_size - 1):
-        # Generate a change using the selected distribution type with drift
-        if random_type == "Uniform":
-            change_percent = np.random.normal(-max_change_abs, max_change_abs)
+    # Calculate the number of records
+    num_records = (num_share_classes * len(series_types) * 
+                   len(series_subtypes) * len(qualifiers) * len(date_range))
+    
+    # Generate data
+    data = {
+        "shareclass_id": np.repeat(range(10, 10 + num_share_classes), len(series_types) * len(series_subtypes) * len(qualifiers) * len(date_range)),
+        "series_type": np.tile(series_types, int(num_records / len(series_types))),
+        "series_subtype": np.tile(series_subtypes, int(num_records / len(series_subtypes))),
+        "qualifier": np.tile(qualifiers, int(num_records / len(qualifiers))),
+        "value": np.random.uniform(100, 1000000, num_records).round(2),
+        "value_date": np.tile(np.repeat(date_range, len(series_types) * len(series_subtypes) * len(qualifiers)), num_share_classes)
+    }
+    
+    # Create DataFrame
+    df = pd.DataFrame(data)
+    return df
 
-        else:
-            change_percent = np.random.normal(daily_drift, std_dev)
+# Streamlit app layout
+st.title("Random Fund Figures Generator")
 
-        # Calculate the next value ensuring it does not exceed the max_change limits
-        change_factor = 1 + max(min(change_percent, max_change), -max_change) / 100
-        next_value = timeseries[-1] * change_factor
+# Input form for the parameters
+with st.form("fund_figures_form"):
+    start_date = st.date_input("Start Date", value=pd.to_datetime("2020-01-01"))
+    num_weekdays = st.number_input("Number of Weekdays", min_value=1, max_value=10000, value=1000)
+    num_share_classes = st.number_input("Number of Share Classes", min_value=1, max_value=1000, value=10)
+    
+    # Generate button
+    generate_button = st.form_submit_button("Generate Data")
 
-        # Append the next value to the timeseries
-        timeseries.append(next_value)
-    return timeseries
+# Generate data and display if button is clicked
+if generate_button:
+    df = generate_fund_figures(start_date, num_weekdays, num_share_classes)
+    
+    # Streamlit filters
+    st.sidebar.header("Filter options")
+    selected_shareclass = st.sidebar.multiselect("Select Share Class ID", options=df["shareclass_id"].unique())
+    selected_series_type = st.sidebar.multiselect("Select Series Type", options=df["series_type"].unique())
+    selected_series_subtype = st.sidebar.multiselect("Select Series Subtype", options=df["series_subtype"].unique())
+    selected_qualifier = st.sidebar.multiselect("Select Qualifier", options=df["qualifier"].unique())
 
-def calculate_daily_returns(timeseries):
-    # Calculate daily returns as percentage changes
-    returns = np.diff(timeseries) / timeseries[:-1] * 100
-    return returns
+    # Date filter
+    date_range = st.sidebar.date_input("Select Date Range", [df["value_date"].min(), df["value_date"].max()])
 
-def plot_returns_histogram(returns):
-    plt.figure(figsize=(10, 4))
-    plt.hist(returns, bins=50, color='blue', alpha=0.7)
-    plt.title('Distribution of Daily Returns')
-    plt.xlabel('Returns (%)')
-    plt.ylabel('Frequency')
-    plt.grid(True)
-    return plt
+    # Apply filters to the DataFrame
+    filtered_df = df.copy()
+    if selected_shareclass:
+        filtered_df = filtered_df[filtered_df["shareclass_id"].isin(selected_shareclass)]
+    if selected_series_type:
+        filtered_df = filtered_df[filtered_df["series_type"].isin(selected_series_type)]
+    if selected_series_subtype:
+        filtered_df = filtered_df[filtered_df["series_subtype"].isin(selected_series_subtype)]
+    if selected_qualifier:
+        filtered_df = filtered_df[filtered_df["qualifier"].isin(selected_qualifier)]
+    if date_range:
+        filtered_df = filtered_df[(filtered_df["value_date"] >= pd.to_datetime(date_range[0])) &
+                                (filtered_df["value_date"] <= pd.to_datetime(date_range[1]))]
 
-def main():
-    st.image("assets/logo-finstory-symboltext.png", width=80)
-    st.title("Time Series Generator with Drift")
-    st.markdown('This tool generates a random time series based on the specified parameters. It also includes a histogram showing the distribution of daily returns.')
-    st.write("")
-    st.write("")
-
-    st.subheader("Enter Parameters", divider="red")
-
-    # Input fields for user configuration with unique keys
-    start_date = st.date_input("Start Date", value=pd.to_datetime('2020-01-01'), format="YYYY-MM-DD")
-    start_value = st.number_input("Starting value", value=100.0, key='start_value')
-    data_size = st.slider("Data Size (number of points)", min_value=250, max_value=5000, step=250, value=1250, key='data_size')
-    max_change = st.slider("Max Daily Change in %", min_value=1, max_value=25, step=1, value=15, key='max_change')
-    annual_drift = st.slider("Annual Drift in % (positive for growth, negative for decline)", min_value=-15, max_value=50, step=5, value=7, key='annual_drift')
-    random_type = st.selectbox("Random Distribution Type", ("Normal", "Uniform"), key="random_type")
-
-    # Generate and display the time series on button click
-    if st.button("Generate Timeseries", key='generate_ts'):
-        timeseries = generate_timeseries(data_size, start_value, max_change, annual_drift, start_date, random_type)
-        
-        # Generate dates only for weekdays
-        dates = pd.bdate_range(start=start_date, periods=data_size, freq='B')
-        df = pd.DataFrame({"Time": dates.strftime('%Y-%m-%d'), "Value": timeseries})
-        
-        # Calculate daily returns and add to DataFrame
-        daily_returns = calculate_daily_returns(timeseries)
-        df['Daily Return'] = np.append([np.nan], daily_returns)  # First value is NaN
-        
-        st.write("")
-        st.write("")
-        st.subheader("Random Time Series with Drift", divider="red")
-        st.write("")
-        st.line_chart(df.set_index("Time")[['Value']])  # Select only the 'Value' column for the line chart
-        
-        # Calculate and display the total return
-        total_return = ((timeseries[-1] / timeseries[0]) - 1) * 100
-        st.metric(label="Total Return", value=f"{total_return:.2f}%")
-        
-        csv = df.to_csv(sep=';', index=False)
-        st.download_button("Download Time Series", data=csv, file_name='timeseries.csv', mime='text/csv')
-        
-        st.write("")
-
-        with st.expander("Distribution of Daily Returns"):
-            st.write("")
-            fig = plot_returns_histogram(daily_returns)
-            st.pyplot(fig)
-
-        with st.expander("Display random values"):
-            st.dataframe(df)
-
-if __name__ == "__main__":
-    main()
+    # Display filtered DataFrame
+    st.write("Filtered Data")
+    st.dataframe(filtered_df)
+    
+    # Optionally allow download as CSV
+    #csv = df.to_csv(index=False)
+    #st.download_button("Download CSV", data=csv, file_name="fund_figures.csv", mime="text/csv")
