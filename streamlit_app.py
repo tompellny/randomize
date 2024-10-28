@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
+st.set_page_config(page_title="Randomize", layout="centered")
+st.image("assets/logo-finstory-symboltext.png", width=80)
+
 def generate_fund_figures(start_date, num_weekdays, num_share_classes):
     # Fixed values
     series_types = ["NAV", "FXRATES", "IR", "DISTR"]
@@ -80,4 +83,4 @@ if "df" in st.session_state:
     st.write("Filtered Data")
     st.dataframe(filtered_df)
 else:
-    st.write("Please generate the data using the form.")
+    st.write("Generate random data using the form.")
