@@ -1,33 +1,37 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from datetime import timedelta
 
 def generate_fund_figures(start_date, num_weekdays, num_share_classes):
-    # Define fixed codes
+    # Fixed values
     series_types = ["NAV", "FXRATES", "IR", "DISTR"]
     series_subtypes = [f"subtype{i}" for i in range(1, 6)]
     qualifiers = ["CHF", "EUR", "USD"]
     
-    # Generate date range for the specified number of weekdays
+    # Generate date range for weekdays
     date_range = pd.bdate_range(start=start_date, periods=num_weekdays)
     
-    # Calculate the number of records
-    num_records = (num_share_classes * len(series_types) * 
-                   len(series_subtypes) * len(qualifiers) * len(date_range))
+    # Calculate the number of total records needed
+    total_records = num_share_classes * len(series_types) * len(series_subtypes) * len(qualifiers) * len(date_range)
     
-    # Generate data
-    data = {
-        "shareclass_id": np.repeat(range(10, 10 + num_share_classes), len(series_types) * len(series_subtypes) * len(qualifiers) * len(date_range)),
-        "series_type": np.tile(series_types, int(num_records / len(series_types))),
-        "series_subtype": np.tile(series_subtypes, int(num_records / len(series_subtypes))),
-        "qualifier": np.tile(qualifiers, int(num_records / len(qualifiers))),
-        "value": np.random.uniform(100, 1000000, num_records).round(2),
-        "value_date": np.tile(np.repeat(date_range, len(series_types) * len(series_subtypes) * len(qualifiers)), num_share_classes)
-    }
+    # Generate each column
+    shareclass_ids = np.repeat(range(10, 10 + num_share_classes), len(series_types) * len(series_subtypes) * len(qualifiers) * len(date_range))
+    series_types_col = np.tile(np.repeat(series_types, len(series_subtypes) * len(qualifiers) * len(date_range)), num_share_classes)
+    series_subtypes_col = np.tile(np.repeat(series_subtypes, len(qualifiers) * len(date_range)), num_share_classes * len(series_types))
+    qualifiers_col = np.tile(np.repeat(qualifiers, len(date_range)), num_share_classes * len(series_types) * len(series_subtypes))
+    values = np.random.uniform(100, 1000000, total_records).round(2)
+    value_dates = np.tile(np.repeat(date_range, len(series_types) * len(series_subtypes) * len(qualifiers)), num_share_classes)
     
     # Create DataFrame
-    df = pd.DataFrame(data)
+    df = pd.DataFrame({
+        "shareclass_id": shareclass_ids,
+        "series_type": series_types_col,
+        "series_subtype": series_subtypes_col,
+        "qualifier": qualifiers_col,
+        "value": values,
+        "value_date": value_dates
+    })
+    
     return df
 
 # Streamlit app layout
@@ -36,27 +40,29 @@ st.title("Random Fund Figures Generator")
 # Input form for the parameters
 with st.form("fund_figures_form"):
     start_date = st.date_input("Start Date", value=pd.to_datetime("2020-01-01"))
-    num_weekdays = st.number_input("Number of Weekdays", min_value=1, max_value=10000, value=1000)
-    num_share_classes = st.number_input("Number of Share Classes", min_value=1, max_value=1000, value=10)
+    num_weekdays = st.number_input("Number of Weekdays", min_value=1, max_value=10000, value=10)
+    num_share_classes = st.number_input("Number of Share Classes", min_value=1, max_value=1000, value=3)
     
     # Generate button
     generate_button = st.form_submit_button("Generate Data")
 
-# Generate data and display if button is clicked
+# Generate data and store in session_state
 if generate_button:
-    df = generate_fund_figures(start_date, num_weekdays, num_share_classes)
-    
-    # Streamlit filters
-    st.sidebar.header("Filter options")
+    st.session_state.df = generate_fund_figures(start_date, num_weekdays, num_share_classes)
+
+# Sidebar filters and display if data exists
+if "df" in st.session_state:
+    df = st.session_state.df
+    st.sidebar.header("Filter Options")
+
+    # Filter options
     selected_shareclass = st.sidebar.multiselect("Select Share Class ID", options=df["shareclass_id"].unique())
     selected_series_type = st.sidebar.multiselect("Select Series Type", options=df["series_type"].unique())
     selected_series_subtype = st.sidebar.multiselect("Select Series Subtype", options=df["series_subtype"].unique())
     selected_qualifier = st.sidebar.multiselect("Select Qualifier", options=df["qualifier"].unique())
-
-    # Date filter
     date_range = st.sidebar.date_input("Select Date Range", [df["value_date"].min(), df["value_date"].max()])
 
-    # Apply filters to the DataFrame
+    # Apply filters
     filtered_df = df.copy()
     if selected_shareclass:
         filtered_df = filtered_df[filtered_df["shareclass_id"].isin(selected_shareclass)]
@@ -68,12 +74,10 @@ if generate_button:
         filtered_df = filtered_df[filtered_df["qualifier"].isin(selected_qualifier)]
     if date_range:
         filtered_df = filtered_df[(filtered_df["value_date"] >= pd.to_datetime(date_range[0])) &
-                                (filtered_df["value_date"] <= pd.to_datetime(date_range[1]))]
+                                  (filtered_df["value_date"] <= pd.to_datetime(date_range[1]))]
 
-    # Display filtered DataFrame
+    # Display filtered data
     st.write("Filtered Data")
     st.dataframe(filtered_df)
-    
-    # Optionally allow download as CSV
-    #csv = df.to_csv(index=False)
-    #st.download_button("Download CSV", data=csv, file_name="fund_figures.csv", mime="text/csv")
+else:
+    st.write("Please generate the data using the form.")
