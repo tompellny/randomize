@@ -84,6 +84,6 @@ if "df" in st.session_state:
     num_filtered = len(filtered_df)
 
     st.write(f"Data set filtered to {num_filtered:,} records.")
-    st.dataframe(filtered_df)
+    st.dataframe(filtered_df, height=800)
 else:
     st.write("No data generated yet.")
