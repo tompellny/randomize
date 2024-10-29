@@ -42,9 +42,9 @@ st.title("Random Fund Figures Generator")
 
 # Input form for the parameters
 with st.form("fund_figures_form"):
-    start_date = st.date_input("Start Date", value=pd.to_datetime("2020-01-01"))
+    start_date = st.date_input("Start Date", value=pd.to_datetime("2024-01-01"))
     num_weekdays = st.number_input("Number of Weekdays", min_value=1, max_value=10000, value=10)
-    num_share_classes = st.number_input("Number of Share Classes", min_value=1, max_value=1000, value=3)
+    num_share_classes = st.number_input("Number of Share Classes", min_value=1, max_value=1000, value=5)
     
     # Generate button
     generate_button = st.form_submit_button("Generate Data")
