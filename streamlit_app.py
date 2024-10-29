@@ -40,20 +40,23 @@ def generate_fund_figures(start_date, num_weekdays, num_share_classes):
 # Streamlit app layout
 st.title("Random Fund Figures Generator")
 
-# Input form for the parameters
-with st.form("fund_figures_form"):
-    start_date = st.date_input("Start Date", value=pd.to_datetime("2024-01-01"))
-    num_weekdays = st.number_input("Number of Weekdays", min_value=1, max_value=10000, value=10)
-    num_share_classes = st.number_input("Number of Share Classes", min_value=1, max_value=1000, value=5)
-    
-    # Generate button
-    generate_button = st.form_submit_button("Generate Data")
 
-# Generate data and store in session_state
-if generate_button:
-    st.session_state.df = generate_fund_figures(start_date, num_weekdays, num_share_classes)
-    num_records = num_weekdays * num_share_classes * 4 * 5 * 3
-    st.success(f"{num_records:,} records generated!")
+with st.expander("Generate Random Fund Figures", expanded=True):
+
+    # Input form for the parameters
+    with st.form("fund_figures_form", border=False):
+        start_date = st.date_input("Start Date", value=pd.to_datetime("2024-01-01"))
+        num_weekdays = st.number_input("Number of Weekdays", min_value=1, max_value=10000, value=10)
+        num_share_classes = st.number_input("Number of Share Classes", min_value=1, max_value=1000, value=5)
+        
+        # Generate button
+        generate_button = st.form_submit_button("Generate Data")
+
+    # Generate data and store in session_state
+    if generate_button:
+        st.session_state.df = generate_fund_figures(start_date, num_weekdays, num_share_classes)
+        num_records = num_weekdays * num_share_classes * 4 * 5 * 3
+        st.success(f"{num_records:,} records generated!")
 
 # Sidebar filters and display if data exists
 if "df" in st.session_state:
@@ -83,7 +86,7 @@ if "df" in st.session_state:
     # Display filtered data
     num_filtered = len(filtered_df)
 
-    st.write(f"Data set filtered to {num_filtered:,} records.")
+    st.write(f"Data filtered to {num_filtered:,} records.")
     st.dataframe(filtered_df, height=800)
 else:
     st.write("No data generated yet.")
