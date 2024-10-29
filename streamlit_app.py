@@ -12,7 +12,7 @@ def generate_fund_figures(start_date, num_weekdays, num_share_classes):
     qualifiers = ["CHF", "EUR", "USD"]
     
     # Generate date range for weekdays
-    date_range = pd.bdate_range(start=start_date, periods=num_weekdays)
+    date_range = pd.bdate_range(start=start_date, periods=num_weekdays).strftime('%Y-%m-%d')  # Format as YYYY-MM-DD
     
     # Calculate the number of total records needed
     total_records = num_share_classes * len(series_types) * len(series_subtypes) * len(qualifiers) * len(date_range)
@@ -53,19 +53,19 @@ with st.form("fund_figures_form"):
 if generate_button:
     st.session_state.df = generate_fund_figures(start_date, num_weekdays, num_share_classes)
     num_records = num_weekdays * num_share_classes * 4 * 5 * 3
-    st.success(f"{num_records} records generated!")
+    st.success(f"{num_records:,} records generated!")
 
 # Sidebar filters and display if data exists
 if "df" in st.session_state:
     df = st.session_state.df
-    st.sidebar.header("Filter Options")
+    st.sidebar.header("Apply Filters:")
 
     # Filter options
-    selected_shareclass = st.sidebar.multiselect("Select Share Class ID", options=df["shareclass_id"].unique())
-    selected_series_type = st.sidebar.multiselect("Select Series Type", options=df["series_type"].unique())
-    selected_series_subtype = st.sidebar.multiselect("Select Series Subtype", options=df["series_subtype"].unique())
-    selected_qualifier = st.sidebar.multiselect("Select Qualifier", options=df["qualifier"].unique())
-    date_range = st.sidebar.date_input("Select Date Range", [df["value_date"].min(), df["value_date"].max()])
+    selected_shareclass = st.sidebar.multiselect("Share Class ID", options=df["shareclass_id"].unique(), placeholder="choose")
+    selected_series_type = st.sidebar.multiselect("Series Type", options=df["series_type"].unique(), placeholder="choose")
+    selected_series_subtype = st.sidebar.multiselect("Series Subtype", options=df["series_subtype"].unique(), placeholder="choose")
+    selected_qualifier = st.sidebar.multiselect("Qualifier", options=df["qualifier"].unique(), placeholder="choose")
+    selected_date = st.sidebar.multiselect("Value Date", options=df["value_date"].unique(), placeholder="choose")
 
     # Apply filters
     filtered_df = df.copy()
@@ -77,13 +77,13 @@ if "df" in st.session_state:
         filtered_df = filtered_df[filtered_df["series_subtype"].isin(selected_series_subtype)]
     if selected_qualifier:
         filtered_df = filtered_df[filtered_df["qualifier"].isin(selected_qualifier)]
-    if date_range:
-        filtered_df = filtered_df[(filtered_df["value_date"] >= pd.to_datetime(date_range[0])) &
-                                  (filtered_df["value_date"] <= pd.to_datetime(date_range[1]))]
+    if selected_date:
+        filtered_df = filtered_df[filtered_df["value_date"] == pd.to_datetime(selected_date)]
 
     # Display filtered data
     num_filtered = len(filtered_df)
-    st.write(f"Data set filtered to {num_filtered} records.")
+
+    st.write(f"Data set filtered to {num_filtered:,} records.")
     st.dataframe(filtered_df)
 else:
     st.write("Generate random data using the form.")
