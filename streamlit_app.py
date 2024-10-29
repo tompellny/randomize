@@ -86,4 +86,4 @@ if "df" in st.session_state:
     st.write(f"Data set filtered to {num_filtered:,} records.")
     st.dataframe(filtered_df)
 else:
-    st.write("Generate random data using the form.")
+    st.write("No data generated yet.")
