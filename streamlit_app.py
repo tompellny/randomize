@@ -78,7 +78,7 @@ if "df" in st.session_state:
     if selected_qualifier:
         filtered_df = filtered_df[filtered_df["qualifier"].isin(selected_qualifier)]
     if selected_date:
-        filtered_df = filtered_df[filtered_df["value_date"] == pd.to_datetime(selected_date)]
+        filtered_df = filtered_df[filtered_df["value_date"].isin(selected_date)]
 
     # Display filtered data
     num_filtered = len(filtered_df)
